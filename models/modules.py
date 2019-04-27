@@ -1,4 +1,5 @@
 import tensorflow as tf
+import tensorflow.keras as keras
 from tensorflow.contrib.rnn import GRUCell
 from util.ops import shape_list
 
@@ -9,8 +10,8 @@ def prenet(inputs, is_training, layer_sizes=[256, 128], scope=None):
   drop_rate = 0.5
   with tf.variable_scope(scope or 'prenet'):
     for i, size in enumerate(layer_sizes):
-      dense = tf.layers.dense(x, units=size, activation=tf.nn.relu, name='dense_%d' % (i+1))
-      x = tf.layers.dropout(dense, rate=drop_rate, training=True, name='dropout_%d' % (i+1))
+      dense = keras.layers.dense(x, units=size, activation=tf.nn.relu, name='dense_%d' % (i+1))
+      x = keras.layers.dropout(dense, rate=drop_rate, training=True, name='dropout_%d' % (i+1))
   return x
 
 def reference_encoder(inputs, filters, kernel_size, strides, encoder_cell, is_training, scope='ref_encoder'):
@@ -30,7 +31,7 @@ def reference_encoder(inputs, filters, kernel_size, strides, encoder_cell, is_tr
       ref_outputs,
       dtype=tf.float32)
 
-    reference_state = tf.layers.dense(encoder_outputs[:,-1,:], 128, activation=tf.nn.tanh) # [N, 128]
+    reference_state = keras.layers.dense(encoder_outputs[:,-1,:], 128, activation=tf.nn.tanh) # [N, 128]
     return reference_state
 
 
@@ -64,7 +65,7 @@ def cbhg(inputs, input_lengths, is_training, scope, K, projections):
       )
 
     # Maxpooling:
-    maxpool_output = tf.layers.max_pooling1d(
+    maxpool_output = keras.layers.max_pooling1d(
       conv_outputs,
       pool_size=2,
       strides=1,
@@ -79,7 +80,7 @@ def cbhg(inputs, input_lengths, is_training, scope, K, projections):
 
     # Handle dimensionality mismatch:
     if highway_input.shape[2] != 128:
-      highway_input = tf.layers.dense(highway_input, 128)
+      highway_input = keras.layers.dense(highway_input, 128)
 
     # 4-layer HighwayNet:
     for i in range(4):
@@ -98,12 +99,12 @@ def cbhg(inputs, input_lengths, is_training, scope, K, projections):
 
 def highwaynet(inputs, scope):
   with tf.variable_scope(scope):
-    H = tf.layers.dense(
+    H = keras.layers.dense(
       inputs,
       units=128,
       activation=tf.nn.relu,
       name='H')
-    T = tf.layers.dense(
+    T = keras.layers.dense(
       inputs,
       units=128,
       activation=tf.nn.sigmoid,
@@ -114,23 +115,23 @@ def highwaynet(inputs, scope):
 
 def conv1d(inputs, kernel_size, channels, activation, is_training, scope):
   with tf.variable_scope(scope):
-    conv1d_output = tf.layers.conv1d(
+    conv1d_output = keras.layers.conv1d(
       inputs,
       filters=channels,
       kernel_size=kernel_size,
       activation=activation,
       padding='same')
-    return tf.layers.batch_normalization(conv1d_output, training=is_training)
+    return keras.layers.batch_normalization(conv1d_output, training=is_training)
 
 def conv2d(inputs, filters, kernel_size, strides, activation, is_training, scope):
   with tf.variable_scope(scope):
-    conv2d_output = tf.layers.conv2d(
+    conv2d_output = keras.layers.conv2d(
       inputs,
       filters=filters,
       kernel_size=kernel_size,
       strides=strides,
       padding='same')
-    conv2d_output = tf.layers.batch_normalization(conv2d_output, training=is_training)
+    conv2d_output = keras.layers.batch_normalization(conv2d_output, training=is_training)
     if activation is not None:
       conv2d_output = activation(conv2d_output)
     return conv2d_output
